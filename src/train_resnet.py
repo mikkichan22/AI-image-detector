@@ -24,8 +24,10 @@ from torchvision import models
 from torchvision.models import ResNet18_Weights
 from tqdm import tqdm
 
-from src.transforms import clean_transform, evaluation_transform
-
+from src.transforms import (
+    augmented_transform,
+    evaluation_transform,
+)
 
 class ManifestDataset(Dataset):
     """
@@ -185,7 +187,7 @@ def main(args):
     train_dataset = ManifestDataset(
         train_rows,
         project_root,
-        clean_transform,
+        augmented_transform,
     )
 
     validation_dataset = ManifestDataset(
