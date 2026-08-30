@@ -7,6 +7,7 @@ import random
 
 SEED = 42
 VALIDATION_RATIO = 0.15
+TEST_RATIO = 0.15
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -17,11 +18,7 @@ ROOT = (
     / "SID_Set_subset"
 )
 
-OUTPUT = (
-    PROJECT_ROOT
-    / "data"
-    / "sid_splits.csv"
-)
+OUTPUT = PROJECT_ROOT / "data" / "sid_splits.csv"
 
 
 def get_file_hash(image_path):
@@ -47,7 +44,9 @@ def main():
         folder = ROOT / class_name
 
         if not folder.is_dir():
-            raise FileNotFoundError(folder)
+            raise FileNotFoundError(
+                f"Missing folder: {folder}"
+            )
 
         for image_path in folder.glob("*.jpg"):
             relative_path = image_path.relative_to(
@@ -64,21 +63,21 @@ def main():
                 }
             )
 
+    print("Images found:", len(records))
+
     duplicate_groups = defaultdict(list)
 
     for record in records:
-        duplicate_groups[record["file_hash"]].append(
-            record
-        )
+        duplicate_groups[
+            record["file_hash"]
+        ].append(record)
 
-    print("Images found:", len(records))
-    print(
-        "Duplicate groups:",
-        sum(
-            len(group) > 1
-            for group in duplicate_groups.values()
-        ),
+    duplicate_count = sum(
+        len(group) > 1
+        for group in duplicate_groups.values()
     )
+
+    print("Duplicate groups:", duplicate_count)
 
     groups_by_label = {
         0: [],
@@ -96,16 +95,25 @@ def main():
         groups = groups_by_label[label]
         rng.shuffle(groups)
 
-        validation_group_count = int(
+        validation_count = int(
             len(groups) * VALIDATION_RATIO
         )
 
+        test_count = int(
+            len(groups) * TEST_RATIO
+        )
+
         validation_groups = groups[
-            :validation_group_count
+            :validation_count
+        ]
+
+        test_groups = groups[
+            validation_count:
+            validation_count + test_count
         ]
 
         train_groups = groups[
-            validation_group_count:
+            validation_count + test_count:
         ]
 
         for group in train_groups:
@@ -116,6 +124,11 @@ def main():
         for group in validation_groups:
             for record in group:
                 record["split"] = "validation"
+                final_records.append(record)
+
+        for group in test_groups:
+            for record in group:
+                record["split"] = "test"
                 final_records.append(record)
 
     for record in final_records:
@@ -138,18 +151,25 @@ def main():
         writer.writeheader()
         writer.writerows(final_records)
 
-    print("Created:", OUTPUT)
+    print(f"Created: {OUTPUT}")
+    print(f"Total images: {len(final_records)}")
 
-    for split in ["train", "validation"]:
+    print("\nFinal split counts:")
+
+    for split_name in [
+        "train",
+        "validation",
+        "test",
+    ]:
         for label in [0, 1]:
             count = sum(
-                record["split"] == split
+                record["split"] == split_name
                 and record["label"] == label
                 for record in final_records
             )
 
             print(
-                f"{split:10} "
+                f"{split_name:10} "
                 f"label={label}: {count}"
             )
 
