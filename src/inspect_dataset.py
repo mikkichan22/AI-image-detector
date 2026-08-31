@@ -4,11 +4,16 @@ import hashlib
 import csv
 
 from PIL import Image
-import matplotlib.pyplot as plt
 
 
-ROOT = Path("data/raw/CIFAKE")
-SPLITS_FILE = Path("data/splits.csv")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+DATA_ROOTS = [
+    PROJECT_ROOT / "data" / "raw" / "CIFAKE",
+    PROJECT_ROOT / "data" / "raw" / "SID_Set_subset",
+]
+
+SPLITS_FILE = PROJECT_ROOT / "data" / "sid_priority_splits.csv"
 
 VALID_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
@@ -22,6 +27,29 @@ corrupt = []
 duplicate_groups = defaultdict(list)
 image_records = []
 
+
+def resolve_image_path(path_string):
+    """Resolve paths in sid_priority_splits.csv across Colab locations."""
+    raw_path = Path(str(path_string))
+
+    candidates = [raw_path]
+    if not raw_path.is_absolute():
+        candidates.append(PROJECT_ROOT / raw_path)
+
+    # If the manifest was generated in another environment, reconstruct the
+    # path below the known dataset directory name.
+    for dataset_name in ["CIFAKE", "SID_Set_subset"]:
+        parts = raw_path.parts
+        if dataset_name in parts:
+            suffix = Path(*parts[parts.index(dataset_name):])
+            candidates.append(PROJECT_ROOT / "data" / "raw" / suffix)
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    return candidates[-1]
+
 # to detect duplicate pictures
 def file_hash(path):
     digest = hashlib.md5()
@@ -33,39 +61,49 @@ def file_hash(path):
     return digest.hexdigest()
 
 
-# 1. Inspect actual image files
-for path in ROOT.rglob("*"):
-    if not path.is_file():
-        continue
+# 1. Inspect actual image files from both datasets
+available_roots = [root for root in DATA_ROOTS if root.exists()]
 
-    if path.suffix.lower() not in VALID_EXTENSIONS:
-        continue
+if not available_roots:
+    raise FileNotFoundError(
+        "Neither dataset directory exists: "
+        + ", ".join(str(root) for root in DATA_ROOTS)
+    )
 
-    extensions[path.suffix.lower()] += 1
+for root in available_roots:
+  for path in root.rglob("*"):
+      if not path.is_file():
+          continue
 
-    try:
-        with Image.open(path) as image:
-            image.verify()
+      if path.suffix.lower() not in VALID_EXTENSIONS:
+          continue
 
-        with Image.open(path) as image:
-            dimensions[image.size] += 1
-            formats[image.format] += 1
+      extensions[path.suffix.lower()] += 1
 
-        duplicate_groups[file_hash(path)].append(str(path))
+      try:
+          with Image.open(path) as image:
+              image.verify()
 
-    except Exception as error:
-        corrupt.append((str(path), str(error)))
+          with Image.open(path) as image:
+              dimensions[image.size] += 1
+              formats[image.format] += 1
+
+          duplicate_groups[file_hash(path)].append(str(path))
+
+      except Exception as error:
+          corrupt.append((str(path), str(error)))
 
 
-# 2. Inspect splits.csv
+# 2. Inspect sid_priority_splits.csv
 with SPLITS_FILE.open(newline="") as file:
     rows = list(csv.DictReader(file))
 
 for row in rows:
     split_counts[row["split"]] += 1
-    class_counts[(row["split"], row["label"], row["class_name"])] += 1
+    class_name = row.get("class_name", row["label"])
+    class_counts[(row["split"], row["label"], class_name)] += 1
 
-    image_path = Path(row["image_path"])
+    image_path = resolve_image_path(row["image_path"])
 
     image_records.append({
         "path": str(image_path),
@@ -75,6 +113,11 @@ for row in rows:
 
 
 # 3. Print summary
+print("Dataset roots:")
+for root in available_roots:
+    print(" -", root)
+
+print("Manifest:", SPLITS_FILE)
 print("Total image files:", sum(extensions.values()))
 
 print("\nImage dimensions:")
@@ -109,7 +152,7 @@ missing_paths = [
     if not Path(record["path"]).exists()
 ]
 
-print("\nMissing paths in splits.csv:", len(missing_paths))
+print("\nMissing paths in sid_priority_splits.csv:", len(missing_paths))
 for path in missing_paths[:20]:
     print(path)
 

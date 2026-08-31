@@ -4,4 +4,5 @@ pandas
 scikit-learn
 Pillow
 numpy
+datasets
 tqdm

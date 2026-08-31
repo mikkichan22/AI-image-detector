@@ -11,7 +11,7 @@ SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 
-SPLITS_FILE = Path("data/splits.csv")
+SPLITS_FILE = Path("data/sid_priority_splits.csv")
 OUTPUT_ROOT = Path("data/robustness")
 MANIFEST_FILE = Path("data/robustness_manifest.csv")
 

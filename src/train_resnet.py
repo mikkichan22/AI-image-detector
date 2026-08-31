@@ -31,7 +31,7 @@ from src.transforms import (
 
 class ManifestDataset(Dataset):
     """
-    Dataset that reads image paths and labels from data/splits.csv.
+    Dataset that reads image paths and labels from data/sid_priority_splits.csv.
     """
 
     def __init__(self, dataframe, project_root, transform):
@@ -362,7 +362,7 @@ def main(args):
 
     final_metrics = {
         "model": "resnet18",
-        "training_type": "clean",
+        "training_type": "augmented",
         "best_epoch": best_epoch,
         "best_validation_f1": best_validation_f1,
         "test_accuracy": test_metrics["accuracy"],
@@ -399,12 +399,12 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--splits_file",
-        default="data/splits.csv",
+        default="data/sid_priority_splits.csv",
     )
 
     parser.add_argument(
         "--output_dir",
-        default="results/resnet18_clean",
+        default="results/sid_priority_splits",
     )
 
     parser.add_argument(
