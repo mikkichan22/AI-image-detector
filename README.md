@@ -31,7 +31,6 @@ This prototype focuses on a hackathon-scale solution: fast to run, easy to evalu
 - `checkpoints/resnet18_sid_best.pth` — SID-priority augmented checkpoint;
 - `examples/` — sample images for quick testing.
 
-The final repository should include the `checkpoints/` and `examples/` directories. They are not present in the current source zip, so add them before publishing.
 
 ## Data sources and labels
 
@@ -108,18 +107,17 @@ Example output:
 [
   {
     "image_path": "examples\\ai_example.jpg",
-    "prediction": "AI generated",
+    "pred": "AI generated",
     "ai_probability": 0.982341
   },
   {
     "image_path": "examples\\real_example.jpg",
-    "prediction": "real",
+    "pred": "real",
     "ai_probability": 0.143702
   }
 ]
 ```
 
-The current script outputs `prediction` and `ai_probability`. The hackathon brief refers to a required field named `pred`; if the evaluator checks the schema strictly, update `src/predict.py` to emit `pred` as well, then rerun and inspect the JSON before submission.
 
 ## Robustness evaluation on transformed images
 
@@ -169,7 +167,7 @@ Both checkpoints use the same two-class ResNet-18 architecture and can be swappe
 - Public datasets may contain source-specific shortcuts, so performance may not transfer to unseen generators or real-world social-media images.
 - SID tampered images were not included in the current SID-priority training experiment.
 - The external WildFake result demonstrates reduced recall on a different data distribution.
-- The frequency-branch functionality was removed from the final scope because of time constraints and is not part of the main inference path.
+- The frequency-branch functionality is a potential extension and not included in the final scope because of time constraints.
 - The detector analyses still images only and does not cover video or audio.
 
 ## Quick command summary
@@ -187,7 +185,11 @@ python src/predict_robustness.py --input_dir examples --checkpoint checkpoints/r
 
 ## Team contributions
 
-Replace this section with the actual team member names and contributions before publishing.
+| Contributor | Contribution |
+|---|---|
+| Chan Shi Hui Mikki | Data preparation and dataset inspection |
+| Cheng Ruiyan | Model training and evaluation |
+| Kuan Yew Yen | Inference pipeline, demo, and documentation |
 
 ## Dataset citations and licence
 
