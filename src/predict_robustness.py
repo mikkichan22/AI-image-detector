@@ -312,7 +312,7 @@ def main(args):
 
             results.append({
                 "image_path": str(image_path),
-                "prediction": label_name,
+                "pred": label_name,
                 "ai_probability": ai_probability,
                 "transform": row["transform"],
             })
