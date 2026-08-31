@@ -20,12 +20,18 @@ SID_SPLITS = (
 OUTPUT = (
     PROJECT_ROOT
     / "data"
-    / "combined_splits.csv"
+    / "sid_priority_splits.csv"
 )
 
 # Number of CIFAKE images per class used for training.
 # SID remains the majority source.
 CIFAKE_TRAIN_PER_CLASS = 2_500
+
+# Number of CIFAKE validation images per class to retain.
+# With the default value this keeps 1,000 REAL and 1,000 FAKE images.
+CIFAKE_VALIDATION_PER_CLASS = 1_000
+
+RANDOM_SEED = 42
 
 
 def main():
@@ -48,7 +54,7 @@ def main():
                     len(group),
                     CIFAKE_TRAIN_PER_CLASS,
                 ),
-                random_state=42,
+                random_state=RANDOM_SEED,
             )
         )
         .reset_index(drop=True)
@@ -74,15 +80,56 @@ def main():
         ignore_index=True,
     )
 
-    combined.to_csv(
-        OUTPUT,
-        index=False,
+    # Build the final validation policy in the same script:
+    # - preserve every train and test row;
+    # - preserve every SID validation row;
+    # - add a balanced CIFAKE validation sample.
+    non_validation = combined[
+        combined["split"] != "validation"
+    ].copy()
+
+    sid_validation = combined[
+        (combined["split"] == "validation")
+        & (combined["source_dataset"] == "SID_Set")
+    ].copy()
+
+    cifake_validation = combined[
+        (combined["split"] == "validation")
+        & (combined["source_dataset"] == "CIFAKE")
+    ]
+
+    cifake_validation_sample = (
+        cifake_validation
+        .groupby("label", group_keys=False)
+        .apply(
+            lambda group: group.sample(
+                n=min(
+                    len(group),
+                    CIFAKE_VALIDATION_PER_CLASS,
+                ),
+                random_state=RANDOM_SEED,
+            )
+        )
+        .reset_index(drop=True)
     )
+
+    sid_priority = pd.concat(
+        [
+            non_validation,
+            sid_validation,
+            cifake_validation_sample,
+        ],
+        ignore_index=True,
+    )
+
+    sid_priority.to_csv(OUTPUT, index=False)
 
     print("Created:", OUTPUT)
 
+    print("\nFinal split counts:")
+
     print(
-        combined.groupby(
+        sid_priority.groupby(
             [
                 "source_dataset",
                 "split",
@@ -93,7 +140,7 @@ def main():
 
     missing_paths = []
 
-    for path_string in combined["image_path"]:
+    for path_string in sid_priority["image_path"]:
         path = Path(path_string)
 
         if not path.is_absolute():
