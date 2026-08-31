@@ -16,6 +16,7 @@ import io
 import json
 import random
 import zipfile
+import ssl
 from pathlib import Path
 from urllib.request import Request, urlopen
 
@@ -27,9 +28,13 @@ COCO_IMAGE = "https://images.cocodataset.org/val2017/{name}"
 EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
 
 
-def get_bytes(url: str) -> bytes:
+def get_bytes(url: str, insecure: bool = False) -> bytes:
     request = Request(url, headers={"User-Agent": "wildfake-eval-subset/1.0"})
-    with urlopen(request, timeout=120) as response:
+
+    # Colab sometimes reports a certificate hostname mismatch for COCO.
+    context = ssl._create_unverified_context() if insecure else None
+
+    with urlopen(request, timeout=120, context=context) as response:
         return response.read()
 
 
@@ -38,7 +43,7 @@ def coco_names(cache_dir: Path) -> list[str]:
     annotation_file = cache_dir / "instances_val2017.json"
     if not annotation_file.exists():
         print("Downloading COCO annotations (~240 MB, one time)...")
-        archive_data = get_bytes(COCO_ANNOTATIONS)
+        archive_data = get_bytes(COCO_ANNOTATIONS, insecure=True)
         with zipfile.ZipFile(io.BytesIO(archive_data)) as archive:
             annotation_file.write_bytes(
                 archive.read("annotations/instances_val2017.json")
@@ -58,7 +63,9 @@ def download_coco(root: Path, count: int, seed: int) -> list[dict]:
         destination = output / name
         if not destination.exists():
             print(f"COCO {i}/{len(selected)}: {name}")
-            destination.write_bytes(get_bytes(COCO_IMAGE.format(name=name)))
+            destination.write_bytes(
+                get_bytes(COCO_IMAGE.format(name=name), insecure=True)
+            )
         rows.append({
             "image_path": str(destination.resolve()),
             "label": 0,
