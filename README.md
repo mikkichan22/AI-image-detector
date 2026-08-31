@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a lightweight AI-generated image detector prototype built with PyTorch and a ResNet-18 backbone. It classifies whether an input image is likely to be real or AI-generated/manipulated, while also allowing evaluation after common real-world transformations such as JPEG compression, blur, cropping, resizing, noise, and colour changes.
+This project is a lightweight AI-generated image detector prototype built with PyTorch and a ResNet-18 backbone. It classifies whether an input image is likely to be real or AI-generated/synthetic, while also allowing evaluation after common real-world transformations such as JPEG compression, blur, cropping, resizing, noise, and colour changes.
 
 The repository includes:
 
@@ -31,19 +31,18 @@ This prototype focuses on a hackathon-scale solution: fast to run, easy to evalu
 - `checkpoints/resnet18_sid_best.pth` — SID-priority augmented checkpoint;
 - `examples/` — sample images for quick testing.
 
-
 ## Data sources and labels
 
 The project uses public image datasets relevant to AI image detection:
 
-- **CIFAKE:** real and AI-generated synthetic images;
-- **SID_Set:** real, fully synthetic, and tampered images;
-- **WildFake validation subset:** external demonstration-only evaluation data supplied for the hackathon.
+- **CIFAKE:** real and AI-generated synthetic images, used for training and evaluation;
+- **SID_Set:** real, fully synthetic, and tampered images. The current experiment uses real and fully synthetic images only;
+- **WildFake validation subset:** external demonstration-only evaluation data used for testing cross-dataset generalisation.
 
 The binary label mapping is:
 
 - `0 = real`;
-- `1 = AI-generated or AI-manipulated`.
+- `1 = AI-generated/synthetic`.
 
 For the current SID experiment, a balanced subset of 10,000 real and 10,000 fully synthetic images was used. SID's tampered label was excluded from this experiment, so the current model should not be described as fully evaluated on tampered images.
 
@@ -68,12 +67,14 @@ The WildFake result shows a cross-dataset generalisation limitation: precision w
 
 2. Create and activate a virtual environment:
 
+### Windows PowerShell
+
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 ```
 
-On macOS/Linux, activate it with:
+### macOS/Linux
 
 ```bash
 source .venv/bin/activate
@@ -106,18 +107,17 @@ Example output:
 ```json
 [
   {
-    "image_path": "examples\\ai_example.jpg",
+    "image_path": "examples/ai_example.jpg",
     "pred": "AI generated",
     "ai_probability": 0.982341
   },
   {
-    "image_path": "examples\\real_example.jpg",
+    "image_path": "examples/real_example.jpg",
     "pred": "real",
     "ai_probability": 0.143702
   }
 ]
 ```
-
 
 ## Robustness evaluation on transformed images
 
@@ -193,4 +193,13 @@ python src/predict_robustness.py --input_dir examples --checkpoint checkpoints/r
 
 ## Dataset citations and licence
 
-Add the official dataset links, citations, repository licence, and any required dataset licence notices before making the repository public. Do not commit raw datasets, credentials, or private local paths.
+The project uses the following public datasets:
+
+- **SID_Set** — used for the SID-priority training experiment, including real and fully synthetic images. The tampered-image class was not included in the current binary experiment.  
+  [SID_Set on Hugging Face](https://huggingface.co/datasets/saberzl/SID_Set)
+
+- **CIFAKE: Real and AI-Generated Synthetic Images** — used for training and evaluation of the detector.  
+  [CIFAKE on Kaggle](https://www.kaggle.com/datasets/birdy654/cifake-real-and-ai-generated-synthetic-images)
+
+- **WildFake** — used as an external testing and demonstration dataset to evaluate cross-dataset generalisation.  
+  [WildFake on ModelScope](https://modelscope.cn/datasets/hy2628982280/WildFake/summary)
