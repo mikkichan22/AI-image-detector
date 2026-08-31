@@ -26,7 +26,7 @@ def evaluate_group(group):
     ).ravel()
 
     return {
-        "transformtransform": group["transform"].iloc[0],
+        "transform": group["transform"].iloc[0],
         "images": len(group),
         "accuracy": accuracy_score(labels, predictions),
         "precision": precision_score(
